@@ -1,0 +1,20 @@
+{
+  "name": "sketchai-frontend",
+  "version": "1.0.0",
+  "description": "SketchAI - Transform hand-drawn sketches into precise room layouts using AI",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 3000",
+    "start": "python -m http.server 8080"
+  },
+  "keywords": [
+    "sketch",
+    "ai",
+    "room-layout", 
+    "opencv",
+    "supabase",
+    "vercel"
+  ],
+  "author": "SketchAI Team",
+  "license": "MIT"
+} 

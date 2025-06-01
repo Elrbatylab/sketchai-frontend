@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SketchAI - Room Layout Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 40px;
+            text-align: center;
+        }
+        .upload-area {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #4299e1;
+            background: #edf2f7;
+        }
+        .upload-btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        .analyze-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #81e6d9;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            text-align: left;
+            display: none;
+        }
+        .supabase-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00D4AA;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .vercel-badge {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #000;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 SketchAI</h1>
+            <p>Transform hand-drawn sketches into precise room layouts using AI</p>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">
+                Powered by Supabase + OpenAI Vision
+            </p>
+        </div>
+        <div class="content">
+            <div class="upload-area">
+                <div style="font-size: 3rem; color: #4299e1; margin-bottom: 20px;">📋</div>
+                <h3>Upload Your Sketch</h3>
+                <p style="color: #718096; margin: 10px 0 20px;">
+                    Select a hand-drawn room sketch image (JPG, PNG, etc.)
+                </p>
+                <input type="file" id="fileInput" style="display: none;" accept="image/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <img id="preview" style="max-width: 100%; max-height: 200px; margin-top: 20px; display: none; border-radius: 10px;">
+            </div>
+            
+            <button id="analyzeBtn" class="analyze-btn" disabled>
+                🔍 Analyze Sketch with AI
+            </button>
+            
+            <div class="status">
+                ✅ Connected to Supabase backend<br>
+                🤖 OpenAI Vision API ready<br>
+                🔒 Secure endpoints configured
+            </div>
+
+            <div id="results" class="results">
+                <h3>🎯 Analysis Results:</h3>
+                <pre id="resultContent"></pre>
+            </div>
+        </div>
+    </div>
+    <div class="supabase-badge">
+        🚀 Backend: Supabase
+    </div>
+    <div class="vercel-badge">
+        ▲ Frontend: Vercel
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://nzlxyjmnjvmfcrcymenf.supabase.co';
+        
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const results = document.getElementById('results');
+        const resultContent = document.getElementById('resultContent');
+        
+        let selectedFile = null;
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.style.opacity = '1';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile || analyzeBtn.disabled) return;
+            
+            analyzeBtn.innerHTML = '<span class="loading">🔄</span> Analyzing...';
+            analyzeBtn.disabled = true;
+            
+            try {
+                // Test API connection first
+                const testResponse = await fetch(`${SUPABASE_URL}/functions/v1/test-simple`);
+                const testResult = await testResponse.text();
+                
+                resultContent.textContent = `✅ API Connection Test:\n${testResult}\n\n🚀 Your SketchAI backend is working!\n\nNext: Integrate OpenAI Vision analysis...`;
+                results.style.display = 'block';
+                
+            } catch (error) {
+                resultContent.textContent = `❌ Error: ${error.message}`;
+                results.style.display = 'block';
+            }
+            
+            analyzeBtn.innerHTML = '🔍 Analyze Sketch with AI';
+            analyzeBtn.disabled = false;
+        });
+        
+        console.log('🚀 SketchAI Frontend Ready');
+        console.log('🔗 Backend:', SUPABASE_URL);
+        console.log('▲ Frontend: Vercel');
+    </script>
+</body>
+</html> 

@@ -309,7 +309,7 @@
                 const formData = new FormData();
                 formData.append('image', selectedFile);
                 
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-sketch-public`, {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-sketch-real`, {
                     method: 'POST',
                     body: formData
                 });
@@ -396,7 +396,7 @@
         console.log('🚀 SketchAI Frontend Ready');
         console.log('🔗 Backend:', SUPABASE_URL);
         console.log('▲ Frontend: Vercel');
-        console.log('🤖 AI Endpoint: /functions/v1/analyze-sketch-public');
+        console.log('🤖 AI Endpoint: /functions/v1/analyze-sketch-real');
     </script>
 </body>
 </html> 
